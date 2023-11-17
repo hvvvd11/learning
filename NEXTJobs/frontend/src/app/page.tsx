@@ -1,10 +1,10 @@
 import { cookies } from 'next/headers'
 
 export default function Home() {
-  let token = String(cookies().get("token"))
-  let email = String(cookies().get("email"))
-  let username = String(cookies().get("username"))
-  let refresh_token = String(cookies().get("refresh_token"))
+  let token = cookies().get("token")?.value
+  let email = cookies().get("email")?.value
+  let username = cookies().get("username")?.value
+  let refresh_token = cookies().get("refresh_token")?.value
   return (
     <>
       <h1>Jobs project</h1>

@@ -69,16 +69,6 @@ pub async fn login(
 
   let mut headers = HeaderMap::new();
 
-  let refresh_token = format!(
-    "refresh_token={}; HttpOnly; Path=/; Max-Age=2592000; SameSite=Strict", // Max-Age is set for 30 days here
-    tokens.refresh_token
-  );
-
-  let token = format!(
-    "token={}; HttpOnly; Path=/; Max-Age=4800; SameSite=Strict", // Max-Age is set for 30 days here
-    tokens.token
-  );
-
   if user.is_email_verified == true {
     headers.insert(
       "token",

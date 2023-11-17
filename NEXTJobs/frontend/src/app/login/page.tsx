@@ -10,7 +10,7 @@ import { useRouter } from 'next/navigation'
 function Login() {
   const router = useRouter();
   const [user, setUser] = React.useState({
-    email: '',
+    email: 'hvvvd1111@gmail.com',
     password: '',
   });
   
@@ -33,11 +33,11 @@ function Login() {
         let cookies = {
           username: payload.data.data.username,
           email: payload.data.data.email,
-          accessToken: payload.headers['token'],
-          refreshToken: payload.headers['refresh_token']
+          token: payload.headers['token'],
+          refreshToken: payload.headers['refresh-token']
         }
         console.log(cookies)
-        await axios.post('http://localhost:3000/api/set_auth_cookies', cookies);
+        await axios.post('/api/user/set_auth_cookies', cookies);
         
         toast.success(payload.data.message)
 
