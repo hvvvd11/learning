@@ -45,7 +45,10 @@ pub async fn login(
   let user = find_user_by_email(&db_pool, &request_user.email).await?;
 
   if !verify_password(&request_user.password, &user.password)? {
-    return Err(ErrPayload::new(StatusCode::UNAUTHORIZED, "incorrect username and/or password"));
+    return Err(ErrPayload::new(
+      StatusCode::UNAUTHORIZED,
+      "incorrect username and/or password",
+    ));
   }
 
   let token = create_token(&jwt_secret.0)?;
@@ -72,22 +75,18 @@ pub async fn login(
   if user.is_email_verified == true {
     headers.insert(
       "token",
-      token
+      tokens
+        .token
         .parse()
-        .map_err(|err| {
-          ErrPayload::new(StatusCode::INTERNAL_SERVER_ERROR, "Something went wrong..");
-          eprintln!("{err}");
-        })
+        .map_err(|err| ErrPayload::internal_server_error(err))
         .unwrap(),
     );
     headers.insert(
       "refresh-token",
-      refresh_token
+      tokens
+        .refresh_token
         .parse()
-        .map_err(|err| {
-          ErrPayload::new(StatusCode::INTERNAL_SERVER_ERROR, "Something went wrong..");
-          eprintln!("{err}");
-        })
+        .map_err(|err| ErrPayload::internal_server_error(err))
         .unwrap(),
     );
 
@@ -98,7 +97,7 @@ pub async fn login(
     let login_tmp_token = send_and_create_email_confirmation_code(&db_pool, request_user.email, user.user_id).await?;
     headers.insert(
       "login_tmp_token",
-      HeaderValue::from_str(&login_tmp_token).map_err(|_| ErrPayload::new(StatusCode::INTERNAL_SERVER_ERROR, "Something went wrong.. "))?,
+      HeaderValue::from_str(&login_tmp_token).map_err(|err| ErrPayload::internal_server_error(err))?,
     );
     Ok((headers, Payload::new("EMAIL_IS_NOT_CONFIRMED", ())).into_response())
   }

@@ -1,3 +1,5 @@
+use std::fmt::Debug;
+
 use axum::{http::StatusCode, response::IntoResponse, Json};
 use serde::{Deserialize, Serialize};
 
@@ -18,6 +20,7 @@ impl<T> Payload<T> {
   }
 }
 
+#[derive(Debug)]
 pub struct ErrPayload {
   code: StatusCode,
   message: String,
@@ -28,6 +31,14 @@ impl ErrPayload {
     Self {
       code,
       message: message.into(),
+    }
+  }
+
+  pub fn internal_server_error<T: Debug>(err: T) -> Self {
+    eprintln!("Error: {:?}", err);
+    Self {
+      code: StatusCode::INTERNAL_SERVER_ERROR,
+      message: "Something went wrong..".to_owned(),
     }
   }
 }

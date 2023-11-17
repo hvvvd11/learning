@@ -36,7 +36,6 @@ function Login() {
           token: payload.headers['token'],
           refreshToken: payload.headers['refresh-token']
         }
-        console.log(cookies)
         await axios.post('/api/user/set_auth_cookies', cookies);
         
         toast.success(payload.data.message)

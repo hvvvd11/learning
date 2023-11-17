@@ -34,13 +34,13 @@ pub async fn save_email_verification_code_model(
 
   match result {
     Ok(code) => Ok(code),
-    Err(err) => {
-      eprintln!("Error saving email verification code model: {:?}", err);
-      Err(ErrPayload::new(StatusCode::INTERNAL_SERVER_ERROR, "Something went wrong.."))
-    }
+    Err(err) => Err(ErrPayload::internal_server_error(err)),
   }
 }
-pub async fn find_email_confirmation_code_model_by_user_id(pool: &PgPool, user_id: i32) -> Result<EmailVerificationCode, ErrPayload> {
+pub async fn find_email_confirmation_code_model_by_user_id(
+  pool: &PgPool,
+  user_id: i32,
+) -> Result<EmailVerificationCode, ErrPayload> {
   match sqlx::query_as!(
     EmailVerificationCode,
     "SELECT * FROM email_verification_codes WHERE user_id = $1",
@@ -50,11 +50,11 @@ pub async fn find_email_confirmation_code_model_by_user_id(pool: &PgPool, user_i
   .await
   {
     Ok(Some(user)) => Ok(user),
-    Ok(None) => Err(ErrPayload::new(StatusCode::NOT_FOUND, "User with such email is not found")),
-    Err(err) => Err({
-      eprintln!("error finding an token_model: {}", err);
-      ErrPayload::new(StatusCode::INTERNAL_SERVER_ERROR, "Something went wrong..")
-    }),
+    Ok(None) => Err(ErrPayload::new(
+      StatusCode::NOT_FOUND,
+      "User with such email is not found",
+    )),
+    Err(err) => Err(ErrPayload::internal_server_error(err)),
   }
 }
 
@@ -71,10 +71,10 @@ pub async fn find_email_confirmation_code_model_by_login_tmp_token(
   .await
   {
     Ok(Some(eccm)) => Ok(eccm),
-    Ok(None) => Err(ErrPayload::new(StatusCode::NOT_FOUND, "User with such tmp_token is not found")),
-    Err(err) => Err({
-      eprintln!("error finding an token_model: {}", err);
-      ErrPayload::new(StatusCode::INTERNAL_SERVER_ERROR, "Something went wrong..")
-    }),
+    Ok(None) => Err(ErrPayload::new(
+      StatusCode::NOT_FOUND,
+      "User with such tmp_token is not found",
+    )),
+    Err(err) => Err(ErrPayload::internal_server_error(err)),
   }
 }

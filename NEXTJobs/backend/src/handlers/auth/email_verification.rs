@@ -64,8 +64,7 @@ pub async fn confirm_email_verification_code(
 
   if token_model.verification_code == request_payload.verification_code {
     if Utc::now().naive_utc() < token_model.expiration_time {
-      let email = confirm_users_email(&db_pool, user_model.email).await?;
-      let user = find_user_by_email(&db_pool, &email).await?;
+      let user = confirm_users_email(&db_pool, user_model.email).await?;
 
       let response_user = ResponseUser {
         id: user.user_id,

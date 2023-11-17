@@ -23,7 +23,10 @@ pub async fn find_user_by_username(pool: &PgPool, username: &str) -> Result<User
     .await
   {
     Ok(Some(user)) => Ok(user),
-    Ok(None) => Err(ErrPayload::new(StatusCode::NOT_FOUND, "user with such credentials not found")),
+    Ok(None) => Err(ErrPayload::new(
+      StatusCode::NOT_FOUND,
+      "user with such credentials not found",
+    )),
     Err(err) => Err({
       eprintln!("error finding a username error: {}", err);
       ErrPayload::new(StatusCode::UNAUTHORIZED, "Error fingind user")
@@ -37,7 +40,10 @@ pub async fn find_user_by_user_id(pool: &PgPool, user_id: i32) -> Result<Users, 
     .await
   {
     Ok(Some(user)) => Ok(user),
-    Ok(None) => Err(ErrPayload::new(StatusCode::NOT_FOUND, "user with such credentials not found")),
+    Ok(None) => Err(ErrPayload::new(
+      StatusCode::NOT_FOUND,
+      "user with such credentials not found",
+    )),
     Err(err) => Err({
       eprintln!("error finding a username error: {}", err);
       ErrPayload::new(StatusCode::UNAUTHORIZED, "Error fingind user")
@@ -51,7 +57,10 @@ pub async fn find_user_by_email(pool: &PgPool, email: &str) -> Result<Users, Err
     .await
   {
     Ok(Some(user)) => Ok(user),
-    Ok(None) => Err(ErrPayload::new(StatusCode::NOT_FOUND, "Users with such credentials not found")),
+    Ok(None) => Err(ErrPayload::new(
+      StatusCode::NOT_FOUND,
+      "Users with such credentials not found",
+    )),
     Err(err) => Err({
       eprintln!("error finding a username error: {}", err);
       ErrPayload::new(StatusCode::INTERNAL_SERVER_ERROR, "Something went wrong..")
@@ -88,21 +97,32 @@ pub async fn save_user(pool: &PgPool, user: &Users) -> Result<Users, ErrPayload>
         return Err(ErrPayload::new(StatusCode::CONFLICT, "This username or email is taken"));
       }
       eprintln!("Error creating user: {err}");
-      Err(ErrPayload::new(StatusCode::INTERNAL_SERVER_ERROR, "Something went wrong.."))
+      Err(ErrPayload::new(
+        StatusCode::INTERNAL_SERVER_ERROR,
+        "Something went wrong..",
+      ))
     }
   }
 }
 
-pub async fn confirm_users_email(pool: &PgPool, email: String) -> Result<String, ErrPayload> {
-  let result = sqlx::query!("UPDATE users SET is_email_verified = true WHERE email = $1", email)
-    .execute(pool)
-    .await;
+pub async fn confirm_users_email(pool: &PgPool, email: String) -> Result<Users, ErrPayload> {
+  // Update the user's email verification status and return the user
+  let user_result = sqlx::query_as!(
+    Users,
+    "UPDATE users SET is_email_verified = true WHERE email = $1 RETURNING *",
+    email
+  )
+  .fetch_one(pool)
+  .await;
 
-  match result {
-    Ok(_) => Ok(email),
+  match user_result {
+    Ok(user) => Ok(user),
     Err(err) => {
-      eprintln!("Error setting a user email confirmation to true: {err}");
-      Err(ErrPayload::new(StatusCode::INTERNAL_SERVER_ERROR, "Something went wrong.."))
+      eprintln!("Error updating user email confirmation or retrieving user data: {err}");
+      Err(ErrPayload::new(
+        StatusCode::INTERNAL_SERVER_ERROR,
+        "Failed to update or retrieve user data.",
+      ))
     }
   }
 }

@@ -58,13 +58,7 @@ pub async fn save_token(
 
   match result {
     Ok(result) => Ok(result),
-    Err(err) => {
-      eprintln!(
-        "Error saving or updating token for user_id {}, user_agent {:?}, ip {:?}: {:?}",
-        user_id, user_agent, ip_addr, err
-      );
-      Err(ErrPayload::new(StatusCode::INTERNAL_SERVER_ERROR, "Something went wrong.."))
-    }
+    Err(err) => Err(ErrPayload::internal_server_error(err)),
   }
 }
 pub async fn find_by_token(pool: &PgPool, token: &str) -> Result<Tokens, ErrPayload> {

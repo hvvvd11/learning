@@ -27,11 +27,13 @@ const VerifyEmail: React.FC = () => {
       } else {
         toast.success(payload.data.message)
 
-        const token = payload.headers['token']
-
-        // cookiesSet("username", payload.data.data.username)
-        // cookiesSet("email", payload.data.data.email)
-        // cookiesSet("token", token)
+        let cookies = {
+          username: payload.data.data.username,
+          email: payload.data.data.email,
+          token: payload.headers['token'],
+          refreshToken: payload.headers['refresh-token']
+        }
+        await axios.post('/api/user/set_auth_cookies', cookies);
 
         router.push("/")
       }

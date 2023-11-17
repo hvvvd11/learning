@@ -70,18 +70,15 @@ pub async fn register(
   let login_tmp_token = send_and_create_email_confirmation_code(&db_pool, user.email, user.user_id).await?;
   headers.insert(
     "login_tmp_token",
-    HeaderValue::from_str(&login_tmp_token)
-      .map_err(|_| ErrPayload::new(StatusCode::INTERNAL_SERVER_ERROR, "Something went wrong.. "))?,
+    HeaderValue::from_str(&login_tmp_token).map_err(|err| ErrPayload::internal_server_error(err))?,
   );
 
   Ok((headers, Payload::new("User registered successfully!", ())).into_response())
 }
 
 pub fn check_email(email: &str) -> Result<String, ErrPayload> {
-  let email_regex = Regex::new(r"(?i)^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$").map_err(|_| {
-    eprintln!("Error checking email");
-    ErrPayload::new(StatusCode::INTERNAL_SERVER_ERROR, "Something went wrong.. ")
-  })?;
+  let email_regex =
+    Regex::new(r"(?i)^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$").map_err(|err| ErrPayload::internal_server_error(err))?;
 
   if email_regex.is_match(email) == true {
     return Ok(email.to_string());
