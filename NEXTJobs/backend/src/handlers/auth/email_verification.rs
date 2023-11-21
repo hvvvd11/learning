@@ -1,22 +1,29 @@
+use std::net::SocketAddr;
+
 use crate::{
   handlers::auth::login::ResponseUser,
   queries::{
     email_verification_codes::{
       find_email_confirmation_code_model_by_login_tmp_token, save_email_verification_code_model,
     },
-    users::{confirm_users_email, find_user_by_email, find_user_by_user_id},
+    tokens::save_token,
+    users::{confirm_users_email, find_user_by_user_id},
   },
   utilities::{
-    auth::{jwt::create_token, token_wrapper::TokenWrapper},
+    auth::{
+      jwt::{create_refresh_token, create_token},
+      token_wrapper::TokenWrapper,
+    },
     email::{create_an_email_confirmation_code, send_email_confirmation_code},
     payload::{ErrPayload, Payload},
   },
 };
 use axum::{
-  extract::State,
+  extract::{ConnectInfo, State},
+  headers::UserAgent,
   http::{HeaderMap, StatusCode},
   response::{IntoResponse, Response},
-  Json,
+  Json, TypedHeader,
 };
 
 use chrono::Utc;
@@ -56,6 +63,8 @@ pub struct ConfirmEmailRequest {
 pub async fn confirm_email_verification_code(
   State(db_pool): State<PgPool>,
   State(jwt_secret): State<TokenWrapper>,
+  TypedHeader(user_agent): TypedHeader<UserAgent>,
+  ConnectInfo(ip_addr): ConnectInfo<SocketAddr>,
   Json(request_payload): Json<ConfirmEmailRequest>,
 ) -> Result<Response, ErrPayload> {
   let token_model =
@@ -67,14 +76,40 @@ pub async fn confirm_email_verification_code(
       let user = confirm_users_email(&db_pool, user_model.email).await?;
 
       let response_user = ResponseUser {
-        id: user.user_id,
         username: user.username.clone(),
         email: user.email,
       };
 
       let token = create_token(&jwt_secret.0)?;
+      let refresh_token = create_refresh_token();
+      let tokens = save_token(
+        &db_pool,
+        user.user_id,
+        token,
+        user_agent.to_string(),
+        ip_addr.ip().to_string(),
+        refresh_token,
+      )
+      .await?;
+
       let mut headers = HeaderMap::new();
-      headers.insert("token", token.parse().unwrap());
+
+      headers.insert(
+        "token",
+        tokens
+          .token
+          .parse()
+          .map_err(|err| ErrPayload::internal_server_error(err))
+          .unwrap(),
+      );
+      headers.insert(
+        "refresh-token",
+        tokens
+          .refresh_token
+          .parse()
+          .map_err(|err| ErrPayload::internal_server_error(err))
+          .unwrap(),
+      );
 
       Ok((headers, Payload::new("Logged in succesfully", response_user)).into_response())
     } else {

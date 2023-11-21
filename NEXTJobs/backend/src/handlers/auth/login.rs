@@ -24,7 +24,6 @@ use sqlx::PgPool;
 
 #[derive(Serialize)]
 pub struct ResponseUser {
-  pub id: i32,
   pub username: String,
   pub email: String,
 }
@@ -65,7 +64,6 @@ pub async fn login(
   .await?;
 
   let response_user = ResponseUser {
-    id: user.user_id,
     username: user.username,
     email: user.email,
   };

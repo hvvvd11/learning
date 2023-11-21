@@ -20,7 +20,7 @@ const VerifyEmail: React.FC = () => {
         verification_code: Number(verification_code),
       }
 
-      const payload = await axios.post('http://localhost:8080/user/confirm_email', requestPayload);
+      const payload = await axios.post('http://localhost:8080/auth/confirm_email', requestPayload);
 
       if (payload.data.error === true) {
         toast.error(payload.data.message)

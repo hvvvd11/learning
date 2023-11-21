@@ -1,4 +1,7 @@
-use crate::handlers::auth::email_verification::{confirm_email_verification_code, send_email_confirmation_code_again};
+use crate::handlers::auth::{
+  email_verification::{confirm_email_verification_code, send_email_confirmation_code_again},
+  refresh_token::refresh_token,
+};
 use axum::{http::Method, routing::post, Router};
 use tower_http::cors::{Any, CorsLayer};
 
@@ -15,11 +18,11 @@ pub fn create_router(app_state: AppState) -> Router {
     .expose_headers(Any);
 
   Router::new()
-    // .route("/auth/refresh_token", post())
     .route(
       "/auth/send_email_confirmation_code_again",
       post(send_email_confirmation_code_again),
     )
+    .route("/auth/refresh_token", post(refresh_token))
     .route("/auth/confirm_email", post(confirm_email_verification_code))
     .route("/auth/register", post(register))
     .route("/auth/login", post(login))

@@ -61,6 +61,43 @@ pub async fn save_token(
     Err(err) => Err(ErrPayload::internal_server_error(err)),
   }
 }
+
+pub async fn update_token(
+  pool: &PgPool,
+  refresh_token: &str,
+  new_token: &str,
+  new_refresh_token: &str,
+) -> Result<Tokens, ErrPayload> {
+  let updated_row = sqlx::query_as!(
+    Tokens,
+    "
+        UPDATE tokens
+        SET 
+            token = $2, 
+            refresh_token = $3, 
+            created_at = CURRENT_TIMESTAMP, 
+            token_expiration_time = CURRENT_TIMESTAMP + INTERVAL '1 hour',
+            refresh_token_expiration_time = CURRENT_TIMESTAMP + INTERVAL '30 day'
+        WHERE refresh_token = $1
+        RETURNING *
+        ",
+    refresh_token,
+    new_token,
+    new_refresh_token
+  )
+  .fetch_one(pool)
+  .await;
+
+  match updated_row {
+    Ok(row) => Ok(row),
+    Err(sqlx::Error::RowNotFound) => {
+      // No matching record found
+      Err(ErrPayload::new(StatusCode::UNAUTHORIZED, "No matching record found"))
+    }
+    Err(err) => Err(ErrPayload::internal_server_error(err)),
+  }
+}
+
 pub async fn find_by_token(pool: &PgPool, token: &str) -> Result<Tokens, ErrPayload> {
   match sqlx::query_as!(Tokens, "SELECT * FROM tokens WHERE token = $1", token)
     .fetch_optional(pool)
@@ -68,6 +105,23 @@ pub async fn find_by_token(pool: &PgPool, token: &str) -> Result<Tokens, ErrPayl
   {
     Ok(Some(user)) => Ok(user),
     Ok(None) => Err(ErrPayload::new(StatusCode::NOT_FOUND, "Token not authorized")),
+    Err(err) => Err({
+      eprintln!("error finding a token error: {}", err);
+      ErrPayload::new(StatusCode::INTERNAL_SERVER_ERROR, "Something went wrong..")
+    }),
+  }
+}
+
+pub async fn find_by_refresh_token(pool: &PgPool, refresh_token: &str) -> Result<Tokens, ErrPayload> {
+  match sqlx::query_as!(Tokens, "SELECT * FROM tokens WHERE refresh_token = $1", refresh_token)
+    .fetch_optional(pool)
+    .await
+  {
+    Ok(Some(user)) => Ok(user),
+    Ok(None) => Err(ErrPayload::new(
+      StatusCode::NOT_FOUND,
+      "Refresh token is not authorized",
+    )),
     Err(err) => Err({
       eprintln!("error finding a token error: {}", err);
       ErrPayload::new(StatusCode::INTERNAL_SERVER_ERROR, "Something went wrong..")

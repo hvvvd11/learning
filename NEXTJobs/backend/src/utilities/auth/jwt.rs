@@ -23,10 +23,7 @@ pub fn create_token(secret: &str) -> Result<String, ErrPayload> {
 
   match encode(&token_header, &claims, &key) {
     Ok(result) => Ok(result),
-    Err(err) => Err({
-      eprintln!("Error creating a token: {:?}", err);
-      ErrPayload::new(StatusCode::INTERNAL_SERVER_ERROR, "Something went wrong...")
-    }),
+    Err(err) => Err(ErrPayload::internal_server_error(err)),
   }
 }
 
@@ -37,7 +34,9 @@ pub fn validate_token(secret: &str, token: &str) -> Result<bool, ErrPayload> {
     .map_err(|error| match error.kind() {
       jsonwebtoken::errors::ErrorKind::InvalidToken
       | jsonwebtoken::errors::ErrorKind::InvalidSignature
-      | jsonwebtoken::errors::ErrorKind::ExpiredSignature => ErrPayload::new(StatusCode::UNAUTHORIZED, "not authenticated!"),
+      | jsonwebtoken::errors::ErrorKind::ExpiredSignature => {
+        ErrPayload::new(StatusCode::UNAUTHORIZED, "not authenticated!")
+      }
       _ => {
         eprintln!("Error validating token: {:?}", error);
         ErrPayload::new(StatusCode::INTERNAL_SERVER_ERROR, "Error validating token")
@@ -47,5 +46,9 @@ pub fn validate_token(secret: &str, token: &str) -> Result<bool, ErrPayload> {
 }
 
 pub fn create_refresh_token() -> String {
-  return rand::thread_rng().sample_iter(&Alphanumeric).take(40).map(char::from).collect();
+  return rand::thread_rng()
+    .sample_iter(&Alphanumeric)
+    .take(64)
+    .map(char::from)
+    .collect();
 }
