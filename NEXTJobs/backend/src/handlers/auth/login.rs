@@ -1,4 +1,4 @@
-use std::net::SocketAddr;
+use std::{default, net::SocketAddr};
 
 use crate::{
   queries::{tokens::save_token, users::find_user_by_email},

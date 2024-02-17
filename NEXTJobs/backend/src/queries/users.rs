@@ -106,22 +106,32 @@ pub async fn save_user(pool: &PgPool, user: &Users) -> Result<Users, ErrPayload>
 }
 
 pub async fn confirm_users_email(pool: &PgPool, email: String) -> Result<Users, ErrPayload> {
-  // Update the user's email verification status and return the user
-  let user_result = sqlx::query_as!(
-    Users,
-    "UPDATE users SET is_email_verified = true WHERE email = $1 RETURNING *",
-    email
-  )
-  .fetch_one(pool)
-  .await;
+  let update_result = sqlx::query!("UPDATE users SET is_email_verified = true WHERE email = $1", email)
+    .execute(pool)
+    .await;
 
-  match user_result {
-    Ok(user) => Ok(user),
+  match update_result {
+    Ok(_) => {
+      let user_result = sqlx::query_as!(Users, "SELECT * FROM users WHERE email = $1", email)
+        .fetch_one(pool)
+        .await;
+
+      match user_result {
+        Ok(user) => Ok(user),
+        Err(err) => {
+          eprintln!("Error retrieving user data after email confirmation: {err}");
+          Err(ErrPayload::new(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "Failed to retrieve user data.",
+          ))
+        }
+      }
+    }
     Err(err) => {
-      eprintln!("Error updating user email confirmation or retrieving user data: {err}");
+      eprintln!("Error setting a user email confirmation to true: {err}");
       Err(ErrPayload::new(
         StatusCode::INTERNAL_SERVER_ERROR,
-        "Failed to update or retrieve user data.",
+        "Something went wrong..",
       ))
     }
   }
